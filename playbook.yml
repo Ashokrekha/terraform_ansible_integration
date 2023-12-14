@@ -1,0 +1,49 @@
+---
+- hosts: all
+  user: ec2-user
+  become: yes
+  vars:
+    a:
+      - git
+      - maven
+  tasks:
+    - name: package installation
+      yum:
+        name: "{{a}}"
+        state: present    
+
+    - name: Clone a github repository
+      git:
+        repo: https://github.com/Ashokrekha/live01.git
+        dest: /root/live01/
+        clone: yes
+        update: yes
+
+    - name: build the project with maven
+      shell: cd /root/live01 && mvn clean package
+
+    - name: install java
+      yum:
+        name: java
+        state: present
+
+    - name: directory creation
+      file:
+        path: /root/tomcat
+        state: directory
+
+    - name: download & unarchive tomcat9 
+      unarchive:
+        src: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.83/bin/apache-tomcat-9.0.83.tar.gz
+        dest: /root/tomcat
+        remote_src: yes
+
+    - name: Run Tomcat
+      shell: nohup ./startup.sh
+      args:
+        chdir: /root/tomcat/apache-tomcat-9.0.83/bin
+    - name: copy the WAR file to tomcat webapps directory
+      copy:
+        src: /root/live01/target/live.war
+        dest: /root/tomcat/apache-tomcat-9.0.83/webapps/
+        remote_src: yes
